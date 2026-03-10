@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Heartful Joy Membership Card - Visible Lotus</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+<style>
+body {
+    font-family: 'Arial Black', Arial, sans-serif;
+    background: #f5f5f5;
+    text-align: center;
+    padding-top: 20px;
+}
+input { padding: 8px; width: 320px; font-size: 16px; margin: 10px; }
+button { padding: 10px 20px; font-size: 16px; margin: 10px; font-weight: bold; }
+
+/* Wrapper for front & back */
+.pdf-card {
+    width: 680px;
+    height: 215px;
+    display: flex;
+    justify-content: space-between;
+    margin: 20px auto;
+}
+
+/* Single card */
+.card {
+    width: 340px;
+    height: 215px;
+    border-radius: 12px;
+    border: 3px solid #333;
+    position: relative;
+    font-weight: 900;
+    color: #000;
+    overflow: hidden;
+}
+
+/* Front: Indian flag colors (light) */
+.card-front {
+    background: linear-gradient(to bottom, #FFCC80 0%, #FFFFFF 50%, #C8E6C9 100%);
+}
+
+/* Back: light colors + visible lotus watermark */
+.card-back {
+    background: linear-gradient(to bottom, #C8E6C9 0%, #FFFFFF 50%, #FFCC80 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 48px;
+    font-weight: bold;
+    color: #004D40;
+}
+
+/* Visible lotus watermark on back */
+.card-back::before {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 300px;  /* larger */
+    height: 200px; /* larger */
+    background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Lotus_flower_icon.svg') no-repeat center;
+    background-size: contain;
+    opacity: 0.35;  /* more visible */
+    transform: translate(-50%, -50%);
+    z-index: 0;
+}
+
+/* Front text */
+.card-front h3, .card-front h4, .card-front p, #qr-code-front {
+    position: relative;
+    z-index: 1;
+    margin: 2px 0;
+    font-weight: 900;
+}
+#qr-code-front { position:absolute; bottom:10px; right:10px; }
+
+/* Back text */
+#backID, #qr-code-back { position: relative; z-index:1; }
+#qr-code-back { position:absolute; bottom:10px; right:10px; }
+
+</style>
+</head>
+<body>
+
+<h2>Heartful Joy Community Membership Card (Visible Lotus Version)</h2>
+<input type="text" id="name" placeholder="Enter Full Name"><br>
+<button onclick="generateCard()">Generate Card</button>
+<button id="downloadBtn" style="display:none;" onclick="downloadPDF()">Download PDF</button>
+
+<div class="pdf-card" id="pdfCard" style="display:none;">
+  <!-- Front -->
+  <div class="card card-front" id="cardFront">
+    <h3>Heartful Joy Community</h3>
+    <h4>Official Membership ID Card</h4>
+    <hr style="margin:5px 0; border-color:#004D40;">
+    <p><strong>Name:</strong> <span id="memberName"></span></p>
+    <p><strong>Membership ID:</strong> <span id="memberID"></span></p>
+    <p><strong>Status:</strong> <span id="memberStatus"></span></p>
+    <p><strong>Date of Issue:</strong> <span id="issueDate"></span></p>
+    <canvas id="qr-code-front"></canvas>
+  </div>
+
+  <!-- Back -->
+  <div class="card card-back" id="cardBack">
+    <span id="backID"></span>
+    <canvas id="qr-code-back"></canvas>
+  </div>
+</div>
+
+<script>
+const members = {
+"UBBARAPU VENKATA GEETHA CHARAN": { id:"HFJ-0001", status:"Permanent Member" },
+"PUTTANEEDI JAIDEEP VENKATA SAI": { id:"HFJ-0002", status:"Permanent Member" },
+"PUTTANEEDI HARSHITHA": { id:"HFJ-0003", status:"Permanent Member" },
+"VALISETTY JAYALAKSHMI": { id:"HFJ-0004", status:"Permanent Member" },
+"KOTTE CHARANYA": { id:"HFJ-0005", status:"Permanent Member" },
+"KOTTE DINESH VENKATA SAI": { id:"HFJ-0006", status:"Permanent Member" },
+"KOTTE SARITHA": { id:"HFJ-0007", status:"Permanent Member" },
+"PUTTANEEDI RUPA DEVI": { id:"HFJ-0008", status:"Permanent Member" },
+"MARUBOINA LOHITHA": { id:"HFJ-0009", status:"Permanent Member" },
+"MARUBOINA LEELAVATHI": { id:"HFJ-0010", status:"Permanent Member" },
+"BADANABOINA UMA DEVI": { id:"HFJ-0011", status:"Permanent Member" },
+"PUTTANEEDI KOTESWARAMMA": { id:"HFJ-0012", status:"Permanent Member" },
+"VALISETTY VIJAYADURGA": { id:"HFJ-0013", status:"Temporarily Approved"}
+};
+
+let currentMemberID = "";
+
+function generateCard(){
+  let nameInput = document.getElementById("name").value.trim().replace(/\s+/g,' ').toUpperCase();
+  let foundName = Object.keys(members).find(m => m.toUpperCase() === nameInput);
+  if(foundName){
+    currentMemberID = members[foundName].id;
+    document.getElementById("memberName").innerText = foundName;
+    document.getElementById("memberID").innerText = currentMemberID;
+    document.getElementById("memberStatus").innerText = members[foundName].status;
+    document.getElementById("issueDate").innerText = new Date().toLocaleDateString();
+    document.getElementById("backID").innerText = currentMemberID;
+    document.getElementById("pdfCard").style.display = "flex";
+    document.getElementById("downloadBtn").style.display = "inline-block";
+
+    // QR codes front/back
+    new QRious({ element: document.getElementById('qr-code-front'), value: `https://heartfuljoycommunity.org/verify?member=${currentMemberID}`, size: 70 });
+    new QRious({ element: document.getElementById('qr-code-back'), value: `https://heartfuljoycommunity.org/verify?member=${currentMemberID}`, size: 70 });
+  } else {
+    alert("Member Not Found");
+    document.getElementById("pdfCard").style.display = "none";
+    document.getElementById("downloadBtn").style.display = "none";
+  }
+}
+
+function downloadPDF(){
+  html2canvas(document.getElementById("pdfCard")).then(canvas=>{
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'landscape', unit:'px', format:[680,215] });
+    pdf.addImage(imgData,'PNG',0,0,680,215);
+    pdf.save(currentMemberID+"_membership_card_lotus_visible.pdf");
+  });
+}
+</script>
+
+</body>
+</html>
